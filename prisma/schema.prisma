@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  avatar    String?
+  createdAt DateTime @default(now())
+
+  workLogs    WorkLog[]
+  studyNotes  StudyNote[]
+  meetings    MeetingParticipant[]
+  reactions   Reaction[]
+  goals       Goal[]
+  attendances Attendance[]
+}
+
+
+model WorkLog {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions Reaction[]
+}
+
+model StudyNote {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions Reaction[]
+}
+
+model Meeting {
+  id        String   @id @default(cuid())
+  title     String
+  date      DateTime
+  agenda    String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants MeetingParticipant[]
+  actionItems  ActionItem[]
+}
+
+model MeetingParticipant {
+  id        String @id @default(cuid())
+  meetingId String
+  userId    String
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+}
+
+model ActionItem {
+  id        String   @id @default(cuid())
+  content   String
+  done      Boolean  @default(false)
+  meetingId String
+  createdAt DateTime @default(now())
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+}
+
+model Goal {
+  id        String   @id @default(cuid())
+  title     String
+  type      GoalType @default(WEEKLY)
+  done      Boolean  @default(false)
+  dueDate   DateTime?
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Reaction {
+  id          String  @id @default(cuid())
+  emoji       String
+  userId      String
+  workLogId   String?
+  studyNoteId String?
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workLog   WorkLog?   @relation(fields: [workLogId], references: [id], onDelete: Cascade)
+  studyNote StudyNote? @relation(fields: [studyNoteId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workLogId, emoji])
+  @@unique([userId, studyNoteId, emoji])
+}
+
+model Attendance {
+  id       String    @id @default(cuid())
+  dateKey  String    // "yyyy-MM-dd"
+  clockIn  DateTime
+  clockOut DateTime?
+  userId   String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dateKey])
+}
+
+enum GoalType {
+  WEEKLY
+  MONTHLY
+}
